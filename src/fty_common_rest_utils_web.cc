@@ -317,7 +317,7 @@ get_path (const std::string& key)
     else
     if (key.find ("FTY_DISCOVERY_") == 0)
     {
-        return "/etc/fty-discovery/fty-discovery.cfg";
+        return "/etc/fty-nut/fty-nut-discovery.cfg";
     }
     else
     if (key.find ("FTY_SESSION_") == 0)
