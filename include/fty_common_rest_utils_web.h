@@ -111,12 +111,17 @@ static constexpr const _WSErrors _errors = { {
     } };
 #undef HTTP_TEAPOT
 
+constexpr bool _strcmp(char const * a, char const * b)
+{
+    return (*a && *b) ? (*a == *b && _strcmp(a + 1, b + 1)) : (!*a && !*b);
+}
+
 template <size_t N>
 constexpr ssize_t
 _die_idx(const char* key)
 {
     static_assert(std::tuple_size<_WSErrors>::value > N, "_die_idx asked for too big N");
-    return (strcmp(_errors.at(N).key, key) == 0 || strcmp(_errors.at(N).message, key) == 0) ? N: _die_idx<N-1>(key);
+    return (_strcmp(_errors.at(N).key, key) || _strcmp(_errors.at(N).message, key)) ? N: _die_idx<N-1>(key);
 }
 
 template <>
@@ -124,7 +129,7 @@ constexpr ssize_t
 _die_idx<1>(const char* key)
 {
     static_assert(std::tuple_size<_WSErrors>::value > 1 , "_die_idx asked for too big N");
-    return (strcmp(_errors.at(1).key, key) == 0 || strcmp(_errors.at(1).message, key) == 0) ? 1: 0;
+    return (_strcmp(_errors.at(1).key, key) || _strcmp(_errors.at(1).message, key)) ? 1: 0;
 }
 
 inline int
