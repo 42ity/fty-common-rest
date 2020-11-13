@@ -916,9 +916,41 @@ fty_common_rest_utils_web_test (bool verbose)
         // Cleanup
         utils::config::roots_destroy(roots);
         roots.clear();
-
-        printf ("OK\n");
     }
+
+    {
+        log_debug ("fty-common-rest-utils-web: Test #13");
+        log_debug ("macro::bios_error_idx");
+        std::string err, expectation;
+        int idx;
+
+        bios_error_idx(idx, err, "internal-error", "test13");
+        expectation = "{ \"key\": \"Internal Server Error. {{var1}}\", "
+            "\"variables\": { \"var1\": \"test13\" } }";
+        log_debug("Got err_str: %s\n\tat index %i", err.c_str(), idx);
+        log_debug("Expectation: %s", expectation.c_str());
+        // Verify that we did get the translated string,
+        // not the expansion of original printf pattern in
+        // the errors array from fty_common_rest_utils_web.h :
+        assert (!streq(err.c_str(), "Internal Server Error. test13"));
+        assert (streq(err.c_str(), expectation.c_str()));
+
+        // This one fails because array index of "undefined" is 0
+        /*
+        {
+            bool passed = false;
+            try {
+                bios_error_idx(idx, err, "undefined");
+                assert (streq(err.c_str(), "I'm a teapot!"));
+                passed = true;
+            } catch(std::exception e) {
+                assert (passed == false);
+            }
+        }
+        */
+    }
+
+    printf ("OK\n");
 }
 
 #ifdef __cplusplus

@@ -75,6 +75,7 @@ typedef std::array<_WSError, _WSErrorsCOUNT> _WSErrors;
 // **5** additional empty strings, which fill sefgaults for other formatting specifiers.
 
 #define HTTP_TEAPOT 418 //see RFC2324
+// Note: array index of "undefined" is 0 and will be rejected by macros below
 static constexpr const _WSErrors _errors = { {
     {"undefined",                HTTP_TEAPOT,                   INT_MIN, TRANSLATE_ME_IGNORE_PARAMS ("I'm a teapot!") },
     {"internal-error",           HTTP_INTERNAL_SERVER_ERROR,    42,      TRANSLATE_ME_IGNORE_PARAMS ("Internal Server Error. %s") },
