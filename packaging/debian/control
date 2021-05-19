@@ -35,7 +35,7 @@ Build-Depends: debhelper (>= 9),
     libfty-common-dev,
     libfty-common-db-dev,
     libtntdb-dev,
-    fty-utils
+    libfty-utils-dev
 
 Package: libfty-common-rest1
 Architecture: any
