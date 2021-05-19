@@ -35,6 +35,7 @@ etn_target(shared ${PROJECT_NAME}
         fty_common
         fty_common_db
         fty_common_logging
+        fty-utils
         tntnet
         tntdb
         sodium

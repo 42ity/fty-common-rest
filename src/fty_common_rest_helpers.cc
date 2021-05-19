@@ -22,14 +22,13 @@
 #include "fty_common_rest_utils_web.h"
 #include <cassert>
 #include <cstdlib>
-#include <cxxtools/regex.h>
 #include <fty_common_db_asset.h>
 #include <fty_common_db_dbpath.h>
 #include <fty_common_macros.h>
 #include <fty_common_str_defs.h> // EV_LICENSE_DIR, EV_DATA_DIR
 #include <tntdb.h>
 #include <unistd.h> // make "readlink" available on ARM
-//#include "shared/log.h"
+#include <regex>
 
 /**
  * TODO: This list should not be precompiled once and forever in the
@@ -229,8 +228,8 @@ typedef int(t_check_func)(int letter);
 bool check_regex_text(
     const char* param_name, const std::string& param_value, const std::string& regex, http_errors_t& errors)
 {
-    cxxtools::Regex R(regex, REG_EXTENDED | REG_ICASE);
-    if (!R.match(param_value)) {
+    std::regex r(regex, std::regex::extended | std::regex::icase);
+    if (!std::regex_match(param_value, r)) {
         std::string msg_received = TRANSLATE_ME("value '%s' is not valid", param_value.c_str());
         std::string msg_expected = TRANSLATE_ME("string matching %s regular expression", regex.c_str());
         http_add_error("", errors, "request-param-bad", param_name, msg_received.c_str(), msg_expected.c_str());

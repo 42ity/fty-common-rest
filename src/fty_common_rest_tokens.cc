@@ -105,7 +105,7 @@ tokens* tokens::get_instance()
 
 BiosProfile tokens::gen_token(const char* user, std::string& token, long int* expires_in)
 {
-    static int number = random() % MAX_USE;
+    static int number = int(random() % MAX_USE);
 
     unsigned char ciphertext[CIPHERTEXT_LEN];
     char          buff[MESSAGE_LEN + 1];
@@ -162,7 +162,7 @@ BiosProfile tokens::gen_token(const char* user, std::string& token, long int* ex
         zconfig_destroy(&root);
     }
 
-    long int tme = static_cast<long int>(mono_time(nullptr)) + *expires_in;
+    long int tme = mono_time(nullptr) + *expires_in;
     tme /= ROUND;
     tme *= ROUND;
 

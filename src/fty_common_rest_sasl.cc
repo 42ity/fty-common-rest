@@ -115,7 +115,7 @@ static int retry_writev(int fd, struct iovec* iov, int iovcnt)
                 break;
             }
 
-            n -= iov[i].iov_len;
+            n -= int(iov[i].iov_len);
             iov[i].iov_len = 0;
         }
 
