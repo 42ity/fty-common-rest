@@ -34,7 +34,8 @@ Build-Depends: debhelper (>= 9),
     libczmq-dev (>= 3.0.2),
     libfty-common-dev,
     libfty-common-db-dev,
-    libtntdb-dev
+    libtntdb-dev,
+    fty-utils
 
 Package: libfty-common-rest1
 Architecture: any
