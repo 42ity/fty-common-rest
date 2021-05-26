@@ -169,7 +169,7 @@ inline int _die_asprintf(char** buf, const char* format, ...)
 
 #define http_die(key, ...)                                                                                             \
     do {                                                                                                               \
-        constexpr size_t __http_die__key_idx__ = _die_idx<_WSErrorsCOUNT - 1>((const char*)key);                       \
+        constexpr size_t __http_die__key_idx__ = _die_idx<_WSErrorsCOUNT - 1>(reinterpret_cast<const char*>(key));     \
         static_assert(__http_die__key_idx__ != 0,                                                                      \
             "Can't find '" key "' in list of error messages. Either add new one either fix the typo in key");          \
         char* __http_die__error_message__ = NULL;                                                                      \
