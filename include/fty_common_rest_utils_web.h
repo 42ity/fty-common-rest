@@ -206,18 +206,19 @@ inline int _die_asprintf(char** buf, const char* format, ...)
         int64_t _idx = idx;                                                                                            \
         if (_idx < 0)                                                                                                  \
             _idx = _idx * -1;                                                                                          \
-        if (_idx >= (int64_t)_WSErrorsCOUNT)                                                                           \
+        if (_idx >= int64_t(_WSErrorsCOUNT))                                                                           \
             _idx = 0;                                                                                                  \
         if (_idx == 0)                                                                                                 \
             log_error("TEAPOT");                                                                                       \
         if (::getenv("BIOS_LOG_LEVEL") && !strcmp(::getenv("BIOS_LOG_LEVEL"), "LOG_DEBUG")) {                          \
             std::string __http_die__debug__ = {__FILE__};                                                              \
             __http_die__debug__ += ": " + std::to_string(__LINE__);                                                    \
-            reply.out() << utils::json::create_error_json(msg, _errors.at(_idx).err_code, __http_die__debug__);        \
+            reply.out() << utils::json::create_error_json(                                                             \
+                msg, uint32_t(_errors.at(size_t(_idx)).err_code), __http_die__debug__);                                \
         } else                                                                                                         \
-            reply.out() << utils::json::create_error_json(msg, _errors.at(_idx).err_code);                             \
+            reply.out() << utils::json::create_error_json(msg, uint32_t(_errors.at(size_t(_idx)).err_code));           \
         http_die_contenttype(reply);                                                                                   \
-        return _errors.at(_idx).http_code;                                                                             \
+        return uint32_t(_errors.at(size_t(_idx)).http_code);                                                           \
     } while (0)
 
 typedef struct _http_errors_t
@@ -315,7 +316,7 @@ struct BiosError : std::invalid_argument
         static_assert(                                                                                                 \
             std::is_same<decltype(str), std::string>::value || std::is_same<decltype(str), std::string&>::value,       \
             "'str' argument in macro bios_error_idx must be a std::string.");                                          \
-        constexpr size_t __http_die__key_idx__ = _die_idx<_WSErrorsCOUNT - 1>((const char*)key);                       \
+        constexpr size_t __http_die__key_idx__ = _die_idx<_WSErrorsCOUNT - 1>(const_cast<const char*>(key));           \
         static_assert(__http_die__key_idx__ != 0,                                                                      \
             "Can't find '" key "' in list of error messages. Either add new one either fix the typo in key");          \
         char* __http_die__error_message__ = NULL;                                                                      \
