@@ -36,7 +36,7 @@
 #include <regex>
 #include <stdlib.h> // for random()
 #include <sys/syscall.h>
-#include <fty/split.h>
+#include <fty/string-utils.h>
 
 //#include "shared/subprocess.h"
 #include "fty_common_rest_utils_web.h"
