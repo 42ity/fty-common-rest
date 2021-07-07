@@ -68,6 +68,7 @@ public:
         , _gid{-1}
         , _reauth{false}
         , _reauthInitialized{false}
+        , _byCookie {false}
     {
     }
 
@@ -106,6 +107,16 @@ public:
     {
         _login = login;
     }
+    
+    bool byCookie () const
+    {
+        return _byCookie;
+    }
+    
+    void byCookie (bool byCookie) 
+    {
+        _byCookie = byCookie;
+    }
 
     /* Get or set the reauth flag */
     bool reauth() const
@@ -139,6 +150,8 @@ protected:
     std::string _login;
     bool        _reauth;
     bool        _reauthInitialized;
+    bool        _byCookie;
+
 };
 
 // 1    contains chars from 'exclude'
@@ -301,7 +314,7 @@ bool check_asset_name(const std::string& param_name, const std::string& name, ht
  *
  */
 void check_user_permissions(const UserInfo& user, const tnt::HttpRequest& request,
-    const std::map<BiosProfile, std::string>& permissions, const std::string debug, http_errors_t& errors);
+    const std::map<BiosProfile, std::string>& permissions, const std::string debug, http_errors_t& errors, bool rejectCookie = false); //to be changed to reject cookie
 
 #define CHECK_USER_PERMISSIONS_OR_DIE(p)                                                                               \
     do {                                                                                                               \
@@ -334,6 +347,36 @@ void check_user_permissions(const UserInfo& user, const tnt::HttpRequest& reques
         }                                                                                                              \
     } while (0)
 
+#define CHECK_USER_PERMISSIONS_OR_DIE_REJECT_COOKIE(p, rejectCookie) \
+    do { \
+        http_errors_t errors; \
+        std::string __http_die__debug__ {""}; \
+        if (::getenv ("BIOS_LOG_LEVEL") && !strcmp (::getenv ("BIOS_LOG_LEVEL"), "LOG_DEBUG")) { \
+            __http_die__debug__ = {__FILE__}; \
+            __http_die__debug__ += ": " + std::to_string (__LINE__); \
+        } \
+        check_user_permissions (user, request, p, __http_die__debug__, errors, rejectCookie); \
+        if (errors.http_code != HTTP_OK) { \
+            http_die_error (errors); \
+        } \
+    } while (0)
+
+#define CHECK_USER_PERMISSIONS_OR_DIE_AUDIT_REJECT_COOKIE(p, audit, rejectCookie) \
+    do { \
+        http_errors_t errors; \
+        std::string __http_die__debug__ {""}; \
+        if (::getenv ("BIOS_LOG_LEVEL") && !strcmp (::getenv ("BIOS_LOG_LEVEL"), "LOG_DEBUG")) { \
+            __http_die__debug__ = {__FILE__}; \
+            __http_die__debug__ += ": " + std::to_string (__LINE__); \
+        } \
+        check_user_permissions (user, request, p, __http_die__debug__, errors, rejectCookie); \
+        if (errors.http_code != HTTP_OK) { \
+            if ((audit) != nullptr) { \
+                log_info_audit ("%s", audit); \
+            } \
+            http_die_error (errors);\
+        } \
+    } while (0)
 
 // Helper function to work with server status
 char* get_current_db_initialized_file(void);

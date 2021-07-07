@@ -351,10 +351,16 @@ static bool s_in(const std::string& haystack, char needle)
 }
 
 void check_user_permissions(const UserInfo& user, const tnt::HttpRequest& request,
-    const std::map<BiosProfile, std::string>& permissions, const std::string debug, http_errors_t& errors)
+    const std::map<BiosProfile, std::string>& permissions, const std::string debug, http_errors_t& errors, bool rejectCookie)
 {
     http_errors_t error;
-
+    
+    if(rejectCookie && user.byCookie()) {
+        log_info ("Auth by cookie is not allowed");
+        http_add_error (debug, errors, "not-authorized", "");
+        return;
+    }
+    
     if (permissions.count(user.profile()) != 1) {
         // actually it is not an error :)
         log_info("Permission not defined for given profile");
