@@ -370,3 +370,14 @@ TEST_CASE("utils::config")
 
     printf("OK\n");
 }
+
+TEST_CASE("utils::strcmp")
+{
+    assert (!_strcmp("aa", "bb"));
+    assert (!_strcmp("aa", "aaa"));
+    assert (!_strcmp("aaa", "aa"));
+    assert (_strcmp("aa", "aa"));
+    assert (!_strcmp(nullptr, "bb"));
+    assert (!_strcmp("aa", nullptr));
+    assert (!_strcmp(nullptr, nullptr));
+}
