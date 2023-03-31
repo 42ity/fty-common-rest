@@ -222,7 +222,7 @@ inline int _die_asprintf(char** buf, const char* format, ...)
 
 typedef struct _http_errors_t
 {
-    uint32_t                                                    http_code;
+    uint32_t                                                    http_code = 0;
     std::vector<std::tuple<uint32_t, std::string, std::string>> errors;
 } http_errors_t;
 

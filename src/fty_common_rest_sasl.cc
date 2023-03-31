@@ -223,6 +223,7 @@ bool authenticate(const char* userid, const char* passwd, const char* service)
 
     r = connect(s, reinterpret_cast<sockaddr*>(&srvaddr), sizeof(srvaddr));
     if (r == -1) {
+        close(s);
         throw std::runtime_error("Can't connect to SASL!");
     }
 
@@ -235,6 +236,7 @@ bool authenticate(const char* userid, const char* passwd, const char* service)
 
         if (retry_writev(s, iov, 1) == -1) {
             fprintf(stderr, "write failed\n");
+            close(s);
             return false;
         }
 
@@ -245,6 +247,7 @@ bool authenticate(const char* userid, const char* passwd, const char* service)
          */
         if (retry_read(s, &count, sizeof(count)) < int(sizeof(count))) {
             fprintf(stderr, "size read failed\n");
+            close(s);
             return false;
         }
 

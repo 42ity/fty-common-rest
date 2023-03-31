@@ -76,10 +76,10 @@
 
 struct Cipher
 {
-    long int      valid_until;
-    int           used;
-    unsigned char nonce[crypto_secretbox_NONCEBYTES];
-    unsigned char key[crypto_secretbox_KEYBYTES];
+    long int      valid_until = 0;
+    int           used = 0;
+    unsigned char nonce[crypto_secretbox_NONCEBYTES] = "";
+    unsigned char key[crypto_secretbox_KEYBYTES] = "";
 };
 
 //! Class to generate and verify tokens
