@@ -28,6 +28,7 @@
 #include "fty_common_rest_utils_web.h"
 #include <catch2/catch.hpp>
 #include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 
 TEST_CASE("single parameter ('inttype') invocation")
 {
