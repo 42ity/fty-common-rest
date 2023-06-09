@@ -27,7 +27,8 @@
 
 #include "fty_common_rest_utils_web.h"
 #include <catch2/catch.hpp>
-#include <cxxtools/jsondeserializer.h>
+#include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 
 TEST_CASE("single parameter ('inttype') invocation")
 {
@@ -265,10 +266,8 @@ TEST_CASE("utils::config")
         "\"config\" : {\"key\" : \"old_array\", \"value\" : [\"old_value1\", \"old_value2\"]}"
         "}";
 
-    std::stringstream           input{JSON};
-    cxxtools::JsonDeserializer  deserializer(input);
     cxxtools::SerializationInfo request_doc;
-    deserializer.deserialize(request_doc);
+    JSON::readFromString(JSON, request_doc);
 
     std::map<std::string, zconfig_t*> roots;
     utils::config::json2zpl(roots, request_doc, test_lock);
@@ -300,10 +299,8 @@ TEST_CASE("utils::config")
         "\"config\" : {\"key\" : \"old_array\", \"value\" : [\"new_value42\", \"new_value44\"]}"
         "}";
 
-    std::stringstream           input2{JSON2};
-    cxxtools::JsonDeserializer  deserializer2(input2);
     cxxtools::SerializationInfo request_doc2;
-    deserializer2.deserialize(request_doc2);
+    JSON::readFromString(JSON2, request_doc2);
 
     utils::config::json2zpl(roots, request_doc2, test_lock);
 
@@ -332,10 +329,8 @@ TEST_CASE("utils::config")
         "{\"key\" : \"BIOS_SMTP_VERIFY_CA\", \"value\" : false}"
         "}";
 
-    std::stringstream           input3{JSON3};
-    cxxtools::JsonDeserializer  deserializer3(input3);
     cxxtools::SerializationInfo request_doc3;
-    deserializer3.deserialize(request_doc3);
+    JSON::readFromString(JSON3, request_doc3);
 
     utils::config::json2zpl(roots, request_doc3, test_lock);
 
@@ -351,10 +346,9 @@ TEST_CASE("utils::config")
         "{"
         "\"BIOS_SNMP_COMMUNITY_NAME\" : [\"eaton\"]"
         "}";
-    std::stringstream           input4{JSON4};
-    cxxtools::JsonDeserializer  deserializer4(input4);
+
     cxxtools::SerializationInfo request_doc4;
-    deserializer4.deserialize(request_doc4);
+    JSON::readFromString(JSON4, request_doc4);
 
     utils::config::json2zpl(roots, request_doc4, test_lock);
 
