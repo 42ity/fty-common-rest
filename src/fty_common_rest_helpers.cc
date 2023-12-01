@@ -102,11 +102,21 @@ static std::map <std::string, std::string> systemctl_service_names = {
     { "fty-metric-compute", "" },
     { "fty-metric-ambient-location", ""},
     { "fty-alert-flexible", "" },
+    { "fty-discovery-ng", "" },
+    { "fty-monitor-unlock", "" },
+    { "fty-nut-command", "" },
+    { "fty-automatic-group", "" },
+    { "fty-alert-srr", "" },
+    { "fty-alert-stats", "" },
+    { "fty-config", "" },
+    { "fty-monitor-unlock", "" },
+    { "fty-security-wallet", "" },
+    { "fty-srr", "" },
     // legacy compatibility
     { "bios-agent-smtp", "fty-email" },
     { "bios-agent-rt", "fty-metric-cache" },
     // added value agents / generic name
-    { "etn-licensing", "" }
+    { "etn-licensing", "" },
 };
 // clang-format on
 
