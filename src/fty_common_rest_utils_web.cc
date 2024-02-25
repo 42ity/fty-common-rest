@@ -330,7 +330,7 @@ namespace config {
         static std::regex  key_format(key_format_string);
         if (!std::regex_match(key, key_format)) {
             std::string msg = "to satisfy format " + key_format_string;
-            bios_throw("request-param-bad", key.c_str(), key.c_str(), msg.c_str())
+            bios_throw("request-param-bad", key.c_str(), key.c_str(), msg.c_str());
         }
     }
 
@@ -340,7 +340,7 @@ namespace config {
         static std::regex value_format(value_format_string);
         if (!std::regex_match(value, value_format)) {
             std::string msg2 = "to satisfy format " + value_format_string;
-            bios_throw("request-param-bad", key.c_str(), value.c_str(), msg2.c_str())
+            bios_throw("request-param-bad", key.c_str(), value.c_str(), msg2.c_str());
         }
     }
 
@@ -357,84 +357,87 @@ namespace config {
     {
         static const std::string slash{"/"};
 
-        if (si.category() != cxxtools::SerializationInfo::Object)
-            bios_throw("bad-request-document", "Root of json request document must be an object")
+        if (si.category() != cxxtools::SerializationInfo::Object) {
+            bios_throw("bad-request-document", "Root of json request document must be an object");
+        }
 
-                for (const auto& it : si)
-            {
+        for (const auto& it : si)
+        {
+            assert_key(it.name());
 
-                assert_key(it.name());
+            // this is a support for legacy input document, please drop it
+            bool legacy_format =
+                it.name() == "config" && it.category() == cxxtools::SerializationInfo::Category::Object;
+            if (legacy_format) {
+                cxxtools::SerializationInfo fake_si;
+                cxxtools::SerializationInfo fake_value = si.getMember("config").getMember("value");
+                std::string                 name;
+                si.getMember("config").getMember("key").getValue(name);
 
-                // this is a support for legacy input document, please drop it
-                bool legacy_format =
-                    it.name() == "config" && it.category() == cxxtools::SerializationInfo::Category::Object;
-                if (legacy_format) {
-                    cxxtools::SerializationInfo fake_si;
-                    cxxtools::SerializationInfo fake_value = si.getMember("config").getMember("value");
-                    std::string                 name;
-                    si.getMember("config").getMember("key").getValue(name);
-
-                    if (fake_value.category() == cxxtools::SerializationInfo::Category::Value) {
-                        std::string value;
-                        fake_value.getValue(value);
-                        fake_si.addMember(name) <<= value;
-                    } else if (fake_value.category() == cxxtools::SerializationInfo::Category::Array) {
-                        std::vector<std::string> values;
-                        fake_value >>= values;
-                        fake_si.addMember(name) <<= values;
-                    } else {
-                        std::string msg = "Value of " + name + " must be string or array of strings.";
-                        bios_throw("bad-request-document", msg.c_str())
-                    }
-                    json2zpl(roots, fake_si, lock);
-                    continue;
-                }
-
-                std::string key;
-                key = it.name();
-
-                std::string file_path = get_path(key);
-                if (!file_path.empty()) { // ignore unknown keys
-                    if (roots.count(file_path) == 0) {
-                        zconfig_t* root = zconfig_load(file_path.c_str());
-                        if (!root)
-                            root = zconfig_new("root", nullptr);
-                        if (!root)
-                            bios_throw("internal-error", "zconfig_new () failed.") roots[file_path] = root;
-                    }
-                }
-
-                zconfig_t* cfg = roots[file_path];
-
-                if (it.category() == cxxtools::SerializationInfo::Category::Value) {
+                if (fake_value.category() == cxxtools::SerializationInfo::Category::Value) {
                     std::string value;
-                    it.getValue(value);
-                    s_zconfig_put(cfg, get_mapping(it.name()), value.c_str());
-                } else if (it.category() == cxxtools::SerializationInfo::Category::Array) {
+                    fake_value.getValue(value);
+                    fake_si.addMember(name) <<= value;
+                } else if (fake_value.category() == cxxtools::SerializationInfo::Category::Array) {
                     std::vector<std::string> values;
-                    it >>= values;
-                    size_t i = 0;
-
-                    zconfig_t* array_root = zconfig_locate(cfg, get_mapping(it.name().c_str()));
-                    if (array_root) {
-                        zconfig_t* ind = zconfig_child(array_root);
-                        while (i) {
-                            zconfig_set_value(ind, nullptr);
-                            ind = zconfig_next(ind);
-                        }
-                    }
-
-                    for (const auto& value : values) {
-                        assert_value(it.name(), value);
-                        std::string name = get_mapping(it.name()) + slash + std::to_string(i);
-                        s_zconfig_put(cfg, name.c_str(), value.c_str());
-                        i++;
-                    }
+                    fake_value >>= values;
+                    fake_si.addMember(name) <<= values;
                 } else {
-                    std::string msg = "Value of " + it.name() + " must be string or array of strings.";
-                    bios_throw("bad-request-document", msg.c_str())
+                    std::string msg = "Value of " + name + " must be string or array of strings.";
+                    bios_throw("bad-request-document", msg.c_str());
+                }
+                json2zpl(roots, fake_si, lock);
+                continue;
+            }
+
+            std::string key;
+            key = it.name();
+
+            std::string file_path = get_path(key);
+            if (!file_path.empty()) { // ignore unknown keys
+                if (roots.count(file_path) == 0) {
+                    zconfig_t* root = zconfig_load(file_path.c_str());
+                    if (!root) {
+                        root = zconfig_new("root", nullptr);
+                    }
+                    if (!root) {
+                        bios_throw("internal-error", "zconfig_new () failed.");
+                    }
+                    roots[file_path] = root;
                 }
             }
+
+            zconfig_t* cfg = roots[file_path];
+
+            if (it.category() == cxxtools::SerializationInfo::Category::Value) {
+                std::string value;
+                it.getValue(value);
+                s_zconfig_put(cfg, get_mapping(it.name()), value.c_str());
+            } else if (it.category() == cxxtools::SerializationInfo::Category::Array) {
+                std::vector<std::string> values;
+                it >>= values;
+                size_t i = 0;
+
+                zconfig_t* array_root = zconfig_locate(cfg, get_mapping(it.name().c_str()));
+                if (array_root) {
+                    zconfig_t* ind = zconfig_child(array_root);
+                    while (i) {
+                        zconfig_set_value(ind, nullptr);
+                        ind = zconfig_next(ind);
+                    }
+                }
+
+                for (const auto& value : values) {
+                    assert_value(it.name(), value);
+                    std::string name = get_mapping(it.name()) + slash + std::to_string(i);
+                    s_zconfig_put(cfg, name.c_str(), value.c_str());
+                    i++;
+                }
+            } else {
+                std::string msg = "Value of " + it.name() + " must be string or array of strings.";
+                bios_throw("bad-request-document", msg.c_str());
+            }
+        }
     }
 
 } // namespace config

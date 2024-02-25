@@ -347,7 +347,7 @@ struct BiosError : std::invalid_argument
         free(__http_die__error_message__);                                                                             \
         log_warning("throw BiosError{%zu, \"%s\"}", __http_die__key_idx__, str.c_str());                               \
         throw BiosError{__http_die__key_idx__, str};                                                                   \
-    } while (0);
+    } while (0)
 
 
 // General template for whether type T (a standard container) is iterable
