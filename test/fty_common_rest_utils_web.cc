@@ -28,7 +28,11 @@
 #include "fty_common_rest_utils_web.h"
 #include <catch2/catch.hpp>
 #include <fty_common_json.h>
+#include <fty_common_macros.h>
 #include <cxxtools/serializationinfo.h>
+
+#include <tnt/httpreply.h>
+#include <sstream>
 
 TEST_CASE("single parameter ('inttype') invocation")
 {
@@ -374,4 +378,37 @@ TEST_CASE("utils::strcmp")
     assert (!_strcmp(nullptr, "bb"));
     assert (!_strcmp("aa", nullptr));
     assert (!_strcmp(nullptr, nullptr));
+}
+
+TEST_CASE("http_die")
+{
+    std::function<int(const std::string&)> requestDie = [](const std::string& dieKey) {
+        std::ostringstream os;
+        tnt::HttpReply reply(os); //http_die inlined
+
+        if (dieKey == "internal-error")
+            { http_die("internal-error", TRANSLATE_ME("test_die_reason").c_str()); }
+        else if (dieKey == "not-authorized")
+            { http_die("not-authorized", TRANSLATE_ME("test_die_reason").c_str()); }
+        else if (dieKey == "upstream-err")
+            { http_die("upstream-err", TRANSLATE_ME("test_die_reason").c_str()); }
+
+        return int(HTTP_OK);
+    };
+
+    struct {
+        const std::string dieKey;
+        int httpStatus;
+    } testVector[] = {
+        { "internal-error", HTTP_INTERNAL_SERVER_ERROR },
+        { "not-authorized", HTTP_UNAUTHORIZED },
+        { "upstream-err", HTTP_BAD_GATEWAY },
+        { "no-die", HTTP_OK },
+    };
+
+    for (const auto& it : testVector) {
+        int httpStatus = requestDie(it.dieKey);
+        std::cout << "dieKey: " << it.dieKey << ", httpStatus: " << httpStatus << std::endl;
+        CHECK(httpStatus == it.httpStatus);
+    }
 }

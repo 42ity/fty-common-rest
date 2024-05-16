@@ -26,7 +26,7 @@
  * \brief Maintain the OAuth2 access_tokens
  */
 #include "fty_common_rest_tokens.h"
-#include <cxxtools/base64codec.h>
+#include <fty_common_base64.h>
 #include <czmq.h>
 #include <exception>
 #include <fty_log.h>
@@ -184,7 +184,7 @@ BiosProfile tokens::gen_token(const char* user, std::string& token, long int* ex
 
     crypto_secretbox_easy(ciphertext, reinterpret_cast<unsigned char*>(buff), strlen(buff), tmp.nonce, tmp.key);
     ciphertext[crypto_secretbox_MACBYTES + strlen(buff)] = 0;
-    std::string ret                                      = cxxtools::Base64Codec::encode(
+    std::string ret = Base64::encode(
         reinterpret_cast<char*>(ciphertext), unsigned(crypto_secretbox_MACBYTES + strlen(buff)));
     for (auto& i : ret) {
         if (i == '+')
@@ -208,7 +208,7 @@ void tokens::decode_token(char* buff, std::string token)
     }
 
     try {
-        data = cxxtools::Base64Codec::decode(token);
+        data = Base64::decode(token);
     } catch (std::exception&) {
         data = "";
     }
