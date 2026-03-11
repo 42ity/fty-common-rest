@@ -27,16 +27,27 @@
  */
 #include "fty_common_rest_tokens.h"
 #include <fty_common_base64.h>
-#include <czmq.h>
-#include <exception>
 #include <fty_log.h>
+
 #include <mutex>
-#include <pwd.h>
-#include <stdio.h>
 #include <string>
-#include <sys/types.h>
 #include <time.h>
-#include <unistd.h>
+
+#include <sodium.h>
+
+//! Length of the ciphertext
+#define CIPHERTEXT_LEN (crypto_secretbox_MACBYTES + MESSAGE_LEN)
+
+//! Round timestamps to this many seconds
+#define ROUND 60
+
+struct Cipher
+{
+    long int      valid_until = 0;
+    int           used = 0;
+    unsigned char nonce[crypto_secretbox_NONCEBYTES] = "";
+    unsigned char key[crypto_secretbox_KEYBYTES] = "";
+};
 
 //! Max time key is alive
 #define MAX_LIVE 24 * 3600
@@ -184,14 +195,16 @@ BiosProfile tokens::gen_token(const char* user, std::string& token, long int* ex
 
     crypto_secretbox_easy(ciphertext, reinterpret_cast<unsigned char*>(buff), strlen(buff), tmp.nonce, tmp.key);
     ciphertext[crypto_secretbox_MACBYTES + strlen(buff)] = 0;
-    std::string ret = Base64::encode(
-        reinterpret_cast<char*>(ciphertext), unsigned(crypto_secretbox_MACBYTES + strlen(buff)));
+
+    std::string ret = Base64::encode(reinterpret_cast<char*>(ciphertext), unsigned(crypto_secretbox_MACBYTES + strlen(buff)));
+
     for (auto& i : ret) {
         if (i == '+')
             i = '_';
         if (i == '/')
             i = '-';
     }
+
     token = ret;
     return profile;
 }
