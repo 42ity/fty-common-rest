@@ -28,13 +28,12 @@ Build-Depends: debhelper (>= 9),
     libsodium-dev,
     libcxxtools-dev,
     libtntnet-dev,
+    libtntdb-dev,
     libsasl2-dev,
-    libfty-common-logging-dev,
-    libzmq3-dev,
     libczmq-dev (>= 3.0.2),
+    libfty-common-logging-dev,
     libfty-common-dev,
     libfty-common-db-dev,
-    libtntdb-dev,
     libfty-utils-dev
 
 Package: libfty-common-rest1
@@ -52,13 +51,12 @@ Depends:
     libsodium-dev,
     libcxxtools-dev,
     libtntnet-dev,
+    libtntdb-dev,
     libsasl2-dev,
-    libfty-common-logging-dev,
-    libzmq3-dev,
     libczmq-dev (>= 3.0.2),
+    libfty-common-logging-dev,
     libfty-common-dev,
     libfty-common-db-dev,
-    libtntdb-dev,
     libfty-common-rest1 (= ${binary:Version})
 Description: fty-common-rest development tools
  This package contains development files for fty-common-rest:
