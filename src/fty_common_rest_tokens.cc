@@ -32,21 +32,20 @@
 #include <mutex>
 #include <string>
 #include <time.h>
-
-#include <sodium.h>
-
-//! Length of the ciphertext
-#define CIPHERTEXT_LEN (crypto_secretbox_MACBYTES + MESSAGE_LEN)
+#include <sys/random.h> //getrandom()
 
 //! Round timestamps to this many seconds
 #define ROUND 60
+
+#define secret_NONCEBYTES 20
+#define secret_KEYBYTES 20
 
 struct Cipher
 {
     long int      valid_until = 0;
     int           used = 0;
-    unsigned char nonce[crypto_secretbox_NONCEBYTES] = "";
-    unsigned char key[crypto_secretbox_KEYBYTES] = "";
+    unsigned char nonce[secret_NONCEBYTES + 1] = "";
+    unsigned char key[secret_KEYBYTES + 1] = "";
 };
 
 //! Max time key is alive
@@ -84,27 +83,76 @@ static BiosProfile s_bios_profile(long int gid)
     }
 }
 
+static void s_fill_buf_with_random_bytes(unsigned char* buf, size_t len)
+{
+    if (buf) {
+        if (len) {
+            memset(buf, 0, len);
+            getrandom(buf, len, 0);
+            for (size_t i = 0; i < len; i++) { if (buf[i] < ' ') buf[i] += ' '; } //printable
+            buf[len - 1] = 0; // 0 term str
+        }
+        else {
+            *buf = 0;
+        }
+    }
+}
+
+// encrypt/decrypt a text with nonce & key privates
+static std::string s_encrypt_message(const char* plaintext, const char* nonce, const char* key)
+{
+    //TODO real encryption
+
+    std::string _nonce(nonce ? nonce : "<nonce>");
+    std::string _key(key ? key : "<key>");
+    std::string prefix = "(" + _nonce + "," + _key + ")";
+
+    std::string _plaintext(plaintext ? plaintext : "<plaintext>");
+    return prefix + _plaintext;
+}
+
+static std::string s_decrypt_message(const char* cryptedtext, const char* nonce, const char* key)
+{
+    //TODO decrypt as: text = decrypt(encrypt(text))
+
+    std::string _nonce(nonce ? nonce : "<nonce>");
+    std::string _key(key ? key : "<key>");
+    std::string prefix = "(" + _nonce + "," + _key + ")";
+
+    std::string _cryptedtext(cryptedtext ? cryptedtext : "<null>");
+    if (_cryptedtext.find(prefix) != 0) {
+        return ""; // error (empty)
+    }
+
+    return _cryptedtext.substr(prefix.size());
+}
+
 void tokens::regen_keys(long int expires_in)
 {
     // drop all old keys
     auto now = mono_time(nullptr);
-    while (!keys.empty() && keys.front().valid_until < now)
+    while (!keys.empty() && (keys.front().valid_until < now)) {
         keys.pop_front();
+    }
 
-    if (keys.empty() || keys.back().used > MAX_USE || keys.back().valid_until < (now + expires_in - MAX_LIVE)) {
-        Cipher new_cipher;
-        randombytes_buf(new_cipher.nonce, sizeof(new_cipher.nonce));
-        randombytes_buf(new_cipher.key, sizeof(new_cipher.key));
-        new_cipher.valid_until = now;
-        new_cipher.valid_until += 2 * MAX_LIVE;
-        new_cipher.used = 0;
-        keys.push_back(new_cipher);
+    if (keys.empty()
+        || (keys.back().used > MAX_USE)
+        || (keys.back().valid_until < (now + expires_in - MAX_LIVE))
+    ) {
+        Cipher cipher;
+        s_fill_buf_with_random_bytes(cipher.nonce, sizeof(cipher.nonce));
+        s_fill_buf_with_random_bytes(cipher.key, sizeof(cipher.key));
+        cipher.valid_until = now + (2 * MAX_LIVE);
+        cipher.used = 0;
+
+        keys.push_back(cipher);
     }
 }
 
 tokens* tokens::get_instance()
 {
-    static tokens*    inst = nullptr;
+    static tokens* inst = nullptr;
+
     static std::mutex mtx;
     mtx.lock();
     if (!inst) {
@@ -116,14 +164,11 @@ tokens* tokens::get_instance()
 
 BiosProfile tokens::gen_token(const char* user, std::string& token, long int* expires_in)
 {
-    static int number = int(random() % MAX_USE);
-
-    unsigned char ciphertext[CIPHERTEXT_LEN];
-    char          buff[MESSAGE_LEN + 1];
-    long int      uid = -1;
-    long int      gid = -1;
+    token = "";
 
     BiosProfile profile = BiosProfile::Anonymous;
+    long int uid = -1;
+    long int gid = -1;
 
     if (user != nullptr) {
         static std::mutex pwnam_lock;
@@ -141,7 +186,7 @@ BiosProfile tokens::gen_token(const char* user, std::string& token, long int* ex
         }
     }
 
-    if (user && profile == BiosProfile::Anonymous) {
+    if (user && (profile == BiosProfile::Anonymous)) {
         log_warning("Cannot map gid %ld to BiosProfile", gid);
         return BiosProfile::Anonymous;
     }
@@ -173,6 +218,8 @@ BiosProfile tokens::gen_token(const char* user, std::string& token, long int* ex
         zconfig_destroy(&root);
     }
 
+    static int number = int(random() % MAX_USE);
+
     long int tme = mono_time(nullptr) + *expires_in;
     tme /= ROUND;
     tme *= ROUND;
@@ -187,55 +234,52 @@ BiosProfile tokens::gen_token(const char* user, std::string& token, long int* ex
     number        = (number + 1) % MAX_USE;
     mtx.unlock();
 
-    size_t len = strlen(user);
     // username will be truncated to 32+nullptr byte by snprintf
-    if (len > 32)
-        len = 32;
-    snprintf(buff, MESSAGE_LEN, "%ld %ld %ld %d %zu%.32s", tme, uid, gid, my_number, len, user);
+    size_t len = strlen(user);
+    if (len > 32) { len = 32; }
 
-    crypto_secretbox_easy(ciphertext, reinterpret_cast<unsigned char*>(buff), strlen(buff), tmp.nonce, tmp.key);
-    ciphertext[crypto_secretbox_MACBYTES + strlen(buff)] = 0;
+    char buff[MESSAGE_LEN + 1];
+    memset(buff, 0, sizeof(buff));
+    snprintf(buff, sizeof(buff), "%ld %ld %ld %d %zu%.32s", tme, uid, gid, my_number, len, user);
 
-    std::string ret = Base64::encode(reinterpret_cast<char*>(ciphertext), unsigned(crypto_secretbox_MACBYTES + strlen(buff)));
+    std::string buf2{buff};
+    if (buf2.size() < MESSAGE_LEN) { buf2.resize(MESSAGE_LEN, '*'); } // '*' padding
+    std::string cipheredtext = s_encrypt_message(buf2.c_str(), reinterpret_cast<char*>(tmp.nonce), reinterpret_cast<char*>(tmp.key));
 
-    for (auto& i : ret) {
-        if (i == '+')
-            i = '_';
-        if (i == '/')
-            i = '-';
+    token = Base64::encode(cipheredtext.c_str(), cipheredtext.size());
+
+    for (auto& c : token) {
+        if (c == '+') c = '_';
+        if (c == '/') c = '-';
     }
 
-    token = ret;
     return profile;
 }
 
+//assume buff size is MESSAGE_LEN+1
 void tokens::decode_token(char* buff, std::string token)
 {
-    std::string data;
-
-    for (auto& i : token) {
-        if (i == '_')
-            i = '+';
-        if (i == '-')
-            i = '/';
+    for (auto& c : token) {
+        if (c == '_') c = '+';
+        if (c == '-') c = '/';
     }
 
+    std::string data;
     try {
         data = Base64::decode(token);
-    } catch (std::exception&) {
-        data = "";
     }
+    catch (...) {}
 
-    for (auto i : keys) {
-        if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(buff),
-                reinterpret_cast<const unsigned char*>(data.c_str()), data.length(), i.nonce, i.key) == 0) {
-            return;
+    for (const auto& it : keys) {
+        std::string plaintext = s_decrypt_message(data.c_str(), reinterpret_cast<const char*>(it.nonce), reinterpret_cast<const char*>(it.key));
+        if (!plaintext.empty()) {
+            snprintf(buff, MESSAGE_LEN + 1, "%s", plaintext.c_str());
+            return; //success
         }
     }
 
-    for (uint32_t i = 0; i <= MESSAGE_LEN; i++) {
-        buff[i] = 0;
-    }
+    //failed
+    memset(buff, 0, MESSAGE_LEN + 1);
 }
 
 void tokens::clean_revoked()
@@ -249,12 +293,15 @@ void tokens::clean_revoked()
 
 void tokens::revoke(const std::string token)
 {
-    char     buff[MESSAGE_LEN + 1];
+    char buff[MESSAGE_LEN + 1];
     long int tme = 0;
+
+    memset(buff, 0, sizeof(buff));
     decode_token(buff, token);
     sscanf(buff, "%ld", &tme);
     if (tme <= mono_time(nullptr))
         return;
+
     revoked.insert(token);
     revoked_queue.insert(std::make_pair(tme, token));
 }
@@ -262,26 +309,29 @@ void tokens::revoke(const std::string token)
 BiosProfile tokens::verify_token(
     const std::string token, long int* expInSec, long int* uid, long int* gid, char** user_name)
 {
-    char     buff[MESSAGE_LEN + 1];
-    long int tme = 0, l_uid = 0, l_gid = 0;
+    if (uid) { *uid = 0; }
+    if (gid) { *gid = 0; }
+    if (user_name) { *user_name = NULL; }
 
     clean_revoked();
     if (revoked.find(token) != revoked.end()) {
         log_info("verify_token: token is revoked, authentication failed!");
         return BiosProfile::Anonymous;
     }
+
+    char buff[MESSAGE_LEN + 1];
+    memset(buff, 0, sizeof(buff));
     decode_token(buff, token);
 
+    long int tme = 0, l_uid = 0, l_gid = 0;
     int r = sscanf(buff, "%ld %ld %ld", &tme, &l_uid, &l_gid);
     if (r != 3) {
         log_debug("verify_token: sscanf read of tme, uid, gid, failed: %s", strerror(errno));
         return BiosProfile::Anonymous;
     }
 
-    if (uid)
-        *uid = l_uid;
-    if (gid)
-        *gid = l_gid;
+    if (uid) { *uid = l_uid; }
+    if (gid) { *gid = l_gid; }
 
     time_t now = mono_time(nullptr);
     if (now > tme) {
@@ -315,8 +365,8 @@ BiosProfile tokens::verify_token(
             return BiosProfile::Anonymous;
         }
         foo[foo_len] = '\0';
-        *user_name   = foo;
+        *user_name = foo;
     }
 
-    return s_bios_profile(*gid);
+    return s_bios_profile(l_gid);
 }

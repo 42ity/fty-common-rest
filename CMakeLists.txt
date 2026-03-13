@@ -32,13 +32,12 @@ etn_target(shared ${PROJECT_NAME}
     USES
         czmq
         cxxtools
+        tntnet
+        tntdb
         fty_common
         fty_common_db
         fty_common_logging
         fty-utils
-        tntnet
-        tntdb
-        sodium
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
