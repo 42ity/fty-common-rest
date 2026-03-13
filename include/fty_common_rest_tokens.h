@@ -37,7 +37,7 @@
  * 1.) If there is no Cipher
  * 2.) OR if the maximum use is bigger than 256
  * 3.) OR if the token will expire after the key
- * 4.) Generate new key (using libsodium's routines, so secure enough)
+ * 4.) Generate new key (secure enough)
  * 5.) Obtain last key in queue
  * 6.) Generate buffer with token as
  *     snprintf(buff, MESSAGE_LEN, "%ld %ld %ld %d %zu%.32s", tme, uid, gid, my_number, len, user);
@@ -63,24 +63,9 @@
 #include <deque>
 #include <map>
 #include <set>
-#include <sodium.h>
 #include <string>
 
-//! Maximum length of the message stored in the token
-//#define MESSAGE_LEN (3 * sizeof (long int) + sizeof (int) + 32)
-
-//! Round timestamps to this many seconds
-#define ROUND 60
-//! Length of the ciphertext
-#define CIPHERTEXT_LEN (crypto_secretbox_MACBYTES + MESSAGE_LEN)
-
-struct Cipher
-{
-    long int      valid_until = 0;
-    int           used = 0;
-    unsigned char nonce[crypto_secretbox_NONCEBYTES] = "";
-    unsigned char key[crypto_secretbox_KEYBYTES] = "";
-};
+struct Cipher;
 
 //! Class to generate and verify tokens
 class tokens
