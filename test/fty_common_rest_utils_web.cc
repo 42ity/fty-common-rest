@@ -25,8 +25,8 @@
  * \brief Not yet documented file
  */
 
-#include "fty_common_rest_utils_web.h"
 #include <catch2/catch.hpp>
+#include "fty_common_rest_utils_web.h"
 #include <fty_common_json.h>
 #include <fty_common_macros.h>
 #include <cxxtools/serializationinfo.h>
@@ -218,20 +218,20 @@ TEST_CASE("valid input")
 {
     try {
         uint32_t r = utils::string_to_element_id("12");
-        assert(r == 12);
+        CHECK(r == 12);
         r = utils::string_to_element_id("123");
-        assert(r == 123);
+        CHECK(r == 123);
         r = utils::string_to_element_id("321");
-        assert(r == 321);
+        CHECK(r == 321);
         r = utils::string_to_element_id("10000");
-        assert(r == 10000);
+        CHECK(r == 10000);
         r = utils::string_to_element_id("131275768");
-        assert(r == 131275768);
+        CHECK(r == 131275768);
 
         r = utils::string_to_element_id("1");
-        assert(r == 1);
+        CHECK(r == 1);
         r = utils::string_to_element_id("4294967295");
-        assert(r == 4294967295);
+        CHECK(r == 4294967295);
 
     } catch (std::exception& e) {
         // This will generate a failure in case of exception
@@ -277,19 +277,19 @@ TEST_CASE("utils::config")
     utils::config::json2zpl(roots, request_doc, test_lock);
 
     zconfig_t* config = roots[utils::config::get_path("BIOS_SMTP_VERIFY_CA")];
-    assert(streq(zconfig_get(config, "smtp/verify_ca", "false"), "true"));
+    CHECK(streq(zconfig_get(config, "smtp/verify_ca", "false"), "true"));
 
     config = roots[utils::config::get_path("BIOS_SNMP_COMMUNITY_NAME")];
-    assert(streq(zconfig_get(config, "snmp/community/0", "nullptr"), "foo"));
-    assert(streq(zconfig_get(config, "snmp/community/1", "nullptr"), "bar"));
+    CHECK(streq(zconfig_get(config, "snmp/community/0", "nullptr"), "foo"));
+    CHECK(streq(zconfig_get(config, "snmp/community/1", "nullptr"), "bar"));
 
     // legacy_path
     config = roots[utils::config::get_path("old_array")];
-    assert(zconfig_get(config, "old_array", nullptr) == nullptr);
-    assert(zconfig_locate(config, "old_array") != nullptr);
+    CHECK(zconfig_get(config, "old_array", nullptr) == nullptr);
+    CHECK(zconfig_locate(config, "old_array") != nullptr);
 
-    assert(streq(zconfig_get(config, "old_array/0", "nullptr"), "old_value1"));
-    assert(streq(zconfig_get(config, "old_array/1", "nullptr"), "old_value2"));
+    CHECK(streq(zconfig_get(config, "old_array/0", "nullptr"), "old_value1"));
+    CHECK(streq(zconfig_get(config, "old_array/1", "nullptr"), "old_value2"));
 
     // Cleanup
     utils::config::roots_destroy(roots);
@@ -309,19 +309,19 @@ TEST_CASE("utils::config")
     utils::config::json2zpl(roots, request_doc2, test_lock);
 
     config = roots[utils::config::get_path("BIOS_SMTP_VERIFY_CA")];
-    assert(streq(zconfig_get(config, "smtp/verify_ca", "true"), "false"));
+    CHECK(streq(zconfig_get(config, "smtp/verify_ca", "true"), "false"));
 
     config = roots[utils::config::get_path("BIOS_SNMP_COMMUNITY_NAME")];
-    assert(streq(zconfig_get(config, "snmp/community/0", "nullptr"), "ham"));
-    assert(streq(zconfig_get(config, "snmp/community/1", "nullptr"), "spam"));
+    CHECK(streq(zconfig_get(config, "snmp/community/0", "nullptr"), "ham"));
+    CHECK(streq(zconfig_get(config, "snmp/community/1", "nullptr"), "spam"));
 
     // legacy_path
     config = roots[utils::config::get_path("old_array")];
-    assert(!zconfig_get(config, "old_array", nullptr));
-    assert(zconfig_locate(config, "old_array") != nullptr);
+    CHECK(!zconfig_get(config, "old_array", nullptr));
+    CHECK(zconfig_locate(config, "old_array") != nullptr);
 
-    assert(streq(zconfig_get(config, "old_array/0", "nullptr"), "new_value42"));
-    assert(streq(zconfig_get(config, "old_array/1", "nullptr"), "new_value44"));
+    CHECK(streq(zconfig_get(config, "old_array/0", "nullptr"), "new_value42"));
+    CHECK(streq(zconfig_get(config, "old_array/1", "nullptr"), "new_value44"));
 
     // Cleanup
     utils::config::roots_destroy(roots);
@@ -339,7 +339,7 @@ TEST_CASE("utils::config")
     utils::config::json2zpl(roots, request_doc3, test_lock);
 
     config = roots[utils::config::get_path("BIOS_SMTP_VERIFY_CA")];
-    assert(streq(zconfig_get(config, "smtp/verify_ca", "true"), "false"));
+    CHECK(streq(zconfig_get(config, "smtp/verify_ca", "true"), "false"));
 
     // Cleanup
     utils::config::roots_destroy(roots);
@@ -358,9 +358,9 @@ TEST_CASE("utils::config")
 
     config = roots[utils::config::get_path("BIOS_SNMP_COMMUNITY_NAME")];
     zconfig_print(config);
-    assert(streq(zconfig_get(config, "snmp/community/0", "nullptr"), "eaton"));
-    assert(!zconfig_get(config, "snmp/community/1", nullptr));
-    assert(!zconfig_get(config, "snmp/community/2", nullptr));
+    CHECK(streq(zconfig_get(config, "snmp/community/0", "nullptr"), "eaton"));
+    CHECK(!zconfig_get(config, "snmp/community/1", nullptr));
+    CHECK(!zconfig_get(config, "snmp/community/2", nullptr));
 
     // Cleanup
     utils::config::roots_destroy(roots);
@@ -371,13 +371,15 @@ TEST_CASE("utils::config")
 
 TEST_CASE("utils::strcmp")
 {
-    assert (!_strcmp("aa", "bb"));
-    assert (!_strcmp("aa", "aaa"));
-    assert (!_strcmp("aaa", "aa"));
-    assert (_strcmp("aa", "aa"));
-    assert (!_strcmp(nullptr, "bb"));
-    assert (!_strcmp("aa", nullptr));
-    assert (!_strcmp(nullptr, nullptr));
+    CHECK(_strcmp("aa", "aa") == true);
+
+    CHECK(_strcmp("aa", "bb") == false);
+    CHECK(_strcmp("aa", "aaa") == false);
+    CHECK(_strcmp("aaa", "aa") == false);
+
+    CHECK(_strcmp("aa", nullptr) == false);
+    CHECK(_strcmp(nullptr, "aa") == false);
+    CHECK(_strcmp(nullptr, nullptr) == false);
 }
 
 TEST_CASE("http_die")

@@ -29,12 +29,15 @@
 
 #ifdef __cplusplus
 
+#include <fty_log.h>
+#include <fty_common_macros.h>
+#include <fty_common_utf8.h>
+#include <cxxtools/serializationinfo.h>
+
 #include <array>
 #include <climits>
 #include <cmath>
-#include <cxxtools/serializationinfo.h>
 #include <czmq.h>
-#include <fty_log.h>
 #include <list>
 #include <mutex>
 #include <stdarg.h>
@@ -42,10 +45,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-//#include "utilspp.h"
 
-#include <fty_common_macros.h>
-#include <fty_common_utf8.h>
 #include <tnt/http.h>
 
 #define BIOS_SCRIPT_USER "_bios-script"
@@ -99,6 +99,7 @@ static constexpr const _WSErrors _errors = {{
 // clang-format on
 #undef HTTP_TEAPOT
 
+// returns true if a & b are defined and equal, else false
 constexpr bool _strcmp(char const* a, char const* b)
 {
     return (a && b) ? ((*a && *b) ? (*a == *b && _strcmp(a + 1, b + 1)) : (!*a && !*b)) : false;
@@ -118,18 +119,19 @@ constexpr ssize_t _die_idx<1>(const char* key)
     return (_strcmp(_errors.at(1).key, key) || _strcmp(_errors.at(1).message, key)) ? 1 : 0;
 }
 
-inline int _die_asprintf(char** buf, const char* format, ...)
+inline size_t _die_asprintf(char** buf, const char* format, ...)
 {
     va_list args;
-
     va_start(args, format);
     std::string buf_str = UTF8::vajsonify_translation_string(format, args);
     va_end(args);
-    size_t length = buf_str.length();
-    *buf          = static_cast<char*>(zmalloc(length + 1));
-    strcpy(*buf, buf_str.c_str());
 
-    return int(length);
+    size_t length = buf_str.length();
+    *buf = static_cast<char*>(zmalloc(length + 1));
+    if (!(*buf)) { return 0; }
+
+    strcpy(*buf, buf_str.c_str());
+    return length;
 }
 
 //  ###### THOSE DEFINITONS ABOVE ARE PRIVATE TO http_die AND SHALL NOT BE ACCESSED DIRECTLY
@@ -207,8 +209,9 @@ inline int _die_asprintf(char** buf, const char* format, ...)
             _idx = _idx * -1;                                                                                          \
         if (_idx >= int64_t(_WSErrorsCOUNT))                                                                           \
             _idx = 0;                                                                                                  \
-        if (_idx == 0)                                                                                                 \
+        if (_idx == 0) {                                                                                               \
             log_error("TEAPOT");                                                                                       \
+        }                                                                                                              \
         if (::getenv("BIOS_LOG_LEVEL") && !strcmp(::getenv("BIOS_LOG_LEVEL"), "LOG_DEBUG")) {                          \
             std::string __http_die__debug__ = {__FILE__};                                                              \
             __http_die__debug__ += ": " + std::to_string(__LINE__);                                                    \
@@ -534,16 +537,4 @@ namespace email {
 
 } // namespace utils
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//  Self test of this class
-void fty_common_rest_utils_web_test(bool verbose);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // __cplus_plus
+#endif // __cplusplus
